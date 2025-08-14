@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical ChatBot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align:center; color:#00695c; margin-bottom:10px;">🩺 MedBot – Your Health Assistant</h2>
+        <div class="chat-container" id="chat-container"></div>
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="input-container">
+            <input type="text" id="message-input" placeholder="Type your medical question...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        function addMessage(message, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageDiv.innerHTML = message;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, true);
+            messageInput.value = '';
+            typingIndicator.style.display = 'block';
+            sendButton.disabled = true;
+
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                typingIndicator.style.display = 'none';
+                sendButton.disabled = false;
+
+                if (data.error) {
+                    addMessage('❗ Error: ' + data.error, false);
+                } else {
+                    addMessage(data.response, false);
+                }
+            } catch (error) {
+                typingIndicator.style.display = 'none';
+                sendButton.disabled = false;
+                addMessage('Could not connect to the server.', false);
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
